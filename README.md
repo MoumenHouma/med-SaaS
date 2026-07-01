@@ -1,4 +1,4 @@
-# Rendia
+# Rendia (med-SaaS)
 
 Appointment & patient-flow optimization for independent clinics in Algeria. See `Rendia_Project_Plan.md` for the full product plan.
 
