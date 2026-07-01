@@ -38,6 +38,11 @@ class Patient(BaseModel):
         verbose_name="Numéro de téléphone",
         help_text="Utilisé pour les rappels SMS/WhatsApp.",
     )
+    email = models.EmailField(
+        blank=True,
+        verbose_name="Email",
+        help_text="Optionnel. Utilisé pour les rappels par email (Phase 1, avant la passerelle SMS/WhatsApp).",
+    )
     date_of_birth = models.DateField(
         null=True,
         blank=True,

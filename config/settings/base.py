@@ -119,3 +119,15 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "core:home"
 LOGOUT_REDIRECT_URL = "core:home"
+
+# ---------------------------------------------------------------------------
+# Email
+# ---------------------------------------------------------------------------
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@rendia.dz")
+
+# Used to build absolute links (e.g. the appointment manage/cancel link) in
+# emails sent from management commands, where there is no request object.
+SITE_URL = config("SITE_URL", default="http://127.0.0.1:8000")
+
+# Reminder emails go out to appointments starting within this many hours.
+REMINDER_LEAD_HOURS = config("REMINDER_LEAD_HOURS", default=24, cast=int)
