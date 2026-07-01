@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Tableau de bord — {{ clinic.name }}{% endblock %}
+{% block content %}
+    <h1>{{ clinic.name }}</h1>
+    <p>{{ clinic.wilaya }} — Abonnement : {{ clinic.get_subscription_tier_display }}</p>
+
+    <h2>Médecins / Praticiens</h2>
+    <p><a href="{% url 'clinics:provider_add' %}">+ Ajouter un médecin</a></p>
+
+    {% if providers %}
+        <ul>
+        {% for provider in providers %}
+            <li>
+                <strong>{{ provider.full_name }}</strong> — {{ provider.specialty }}
+                <a href="{% url 'clinics:service_add' provider.id %}">+ Ajouter un service</a>
+                {% if provider.services.all %}
+                    <ul>
+                    {% for service in provider.services.all %}
+                        <li>{{ service.name }} ({{ service.average_duration }} min) — {{ service.price }} DZD</li>
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>Aucun service pour l'instant.</p>
+                {% endif %}
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>Aucun médecin enregistré pour l'instant.</p>
+    {% endif %}
+{% endblock %}

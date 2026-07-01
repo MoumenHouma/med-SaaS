@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Créer votre clinique — Rendia{% endblock %}
+{% block content %}
+    <h1>Bienvenue — créez votre clinique</h1>
+    <p>Ces informations peuvent être modifiées plus tard.</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Créer la clinique</button>
+    </form>
+{% endblock %}

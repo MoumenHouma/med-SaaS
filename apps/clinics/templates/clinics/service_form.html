@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Ajouter un service — Rendia{% endblock %}
+{% block content %}
+    <h1>Ajouter un service pour {{ provider.full_name }}</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Ajouter</button>
+    </form>
+    <p><a href="{% url 'clinics:dashboard' %}">Retour au tableau de bord</a></p>
+{% endblock %}

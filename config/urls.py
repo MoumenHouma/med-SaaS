@@ -13,6 +13,7 @@ admin.site.index_title = "Tableau de bord"
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("accounts/", include("django.contrib.auth.urls")),
     # App-level URL includes (to be expanded as views are built)
     path("", include("apps.core.urls")),
     path("clinics/", include("apps.clinics.urls")),
