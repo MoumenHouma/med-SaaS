@@ -2,8 +2,11 @@ import uuid
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect
+from django.utils import timezone
 from django.utils.text import slugify
 from django.views.generic import CreateView, TemplateView
+
+from apps.scheduling.models import Appointment
 
 from .forms import ClinicOnboardingForm, ProviderForm, ServiceForm
 from .models import Clinic, ClinicStaff, Provider
@@ -67,6 +70,13 @@ class DashboardView(ClinicStaffRequiredMixin, TemplateView):
         context["clinic"] = self.clinic
         context["providers"] = self.clinic.providers.prefetch_related("services").order_by(
             "last_name", "first_name"
+        )
+        context["today_appointments"] = (
+            Appointment.objects.filter(
+                provider__clinic=self.clinic, scheduled_start__date=timezone.localdate()
+            )
+            .select_related("patient", "provider", "service")
+            .order_by("scheduled_start")
         )
         return context
 

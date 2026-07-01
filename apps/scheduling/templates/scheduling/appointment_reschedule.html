@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Reprogrammer — Rendia{% endblock %}
+{% block content %}
+    <h1>Reprogrammer le rendez-vous</h1>
+    <p>{{ appointment.provider.full_name }} — {{ appointment.service.name }}</p>
+
+    <form method="get">
+        <label>Date :
+            <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+        </label>
+        <button type="submit">Voir les créneaux</button>
+    </form>
+
+    <h2>Créneaux disponibles — {{ selected_date }}</h2>
+    {% if slots %}
+        <ul>
+        {% for slot in slots %}
+            <li>
+                <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+                    <input type="hidden" name="slot" value="{{ slot|date:'c' }}">
+                    <button type="submit">{{ slot|date:'H:i' }}</button>
+                </form>
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>Aucun créneau disponible ce jour-là.</p>
+    {% endif %}
+
+    <p><a href="{% url 'scheduling:appointment_manage' appointment.id %}">Retour</a></p>
+{% endblock %}

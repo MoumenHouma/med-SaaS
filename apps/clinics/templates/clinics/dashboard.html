@@ -3,6 +3,29 @@
 {% block content %}
     <h1>{{ clinic.name }}</h1>
     <p>{{ clinic.wilaya }} — Abonnement : {{ clinic.get_subscription_tier_display }}</p>
+    <p>
+        Lien de prise de rendez-vous public :
+        <a href="{% url 'scheduling:booking_search' clinic.slug %}">{% url 'scheduling:booking_search' clinic.slug %}</a>
+    </p>
+
+    <h2>Rendez-vous d'aujourd'hui</h2>
+    {% if today_appointments %}
+        <table>
+            <tr><th>Heure</th><th>Patient</th><th>Médecin</th><th>Service</th><th>Statut</th><th></th></tr>
+            {% for appt in today_appointments %}
+                <tr>
+                    <td>{{ appt.scheduled_start|date:'H:i' }}</td>
+                    <td>{{ appt.patient.full_name }}</td>
+                    <td>{{ appt.provider.full_name }}</td>
+                    <td>{{ appt.service.name }}</td>
+                    <td>{{ appt.get_status_display }}</td>
+                    <td><a href="{% url 'scheduling:appointment_manage' appt.id %}">Gérer</a></td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>Aucun rendez-vous aujourd'hui.</p>
+    {% endif %}
 
     <h2>Médecins / Praticiens</h2>
     <p><a href="{% url 'clinics:provider_add' %}">+ Ajouter un médecin</a></p>
