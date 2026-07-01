@@ -1,0 +1,14 @@
+# Rendia — Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Django
+django==5.2.3
+
+# Environment variable management
+python-decouple==3.8
+
+# PostgreSQL adapter (production)
+psycopg2-binary==2.9.12
+
+# Image handling (for future profile photos, clinic logos)
+pillow
