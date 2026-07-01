@@ -12,3 +12,6 @@ psycopg2-binary==2.9.12
 
 # Image handling (for future profile photos, clinic logos)
 pillow
+
+# Optimization engine: no-show prediction (logistic regression)
+scikit-learn==1.9.0
