@@ -167,8 +167,8 @@ class Appointment(BaseModel):
         )
 
     def save(self, *args, **kwargs):
-        """Auto-compute lead_time_days on first save."""
-        if not self.lead_time_days and self.scheduled_start:
+        """Compute lead_time_days once, on the initial INSERT only."""
+        if self._state.adding and self.scheduled_start:
             from django.utils import timezone
             delta = self.scheduled_start.date() - timezone.now().date()
             self.lead_time_days = max(delta.days, 0)
