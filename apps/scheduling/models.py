@@ -159,6 +159,24 @@ class Appointment(BaseModel):
             models.Index(fields=["provider", "scheduled_start"]),
             models.Index(fields=["patient", "status"]),
         ]
+        constraints = [
+            # DB-level guarantee against two active appointments landing on the
+            # exact same (provider, scheduled_start) slot. Does NOT cover partial
+            # overlaps between different-duration services starting at different
+            # timestamps -- that class of overlap is still only checked by
+            # apps.scheduling.services.availability.get_available_slots.
+            #
+            # Status values are hardcoded here (rather than referencing
+            # Status.CANCELLED/Status.NO_SHOW) because nested class bodies in
+            # Python don't see the enclosing class's namespace -- Meta can't
+            # resolve the sibling Status class the way a plain field default
+            # like `status = ...(default=Status.SCHEDULED)` can.
+            models.UniqueConstraint(
+                fields=["provider", "scheduled_start"],
+                condition=~models.Q(status__in=["cancelled", "no_show"]),
+                name="unique_active_appointment_slot",
+            ),
+        ]
 
     def __str__(self) -> str:
         return (

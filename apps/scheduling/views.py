@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.contrib import messages
+from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -96,27 +97,35 @@ def booking_confirm(request, clinic_slug):
     if request.method == "POST":
         form = PatientContactForm(request.POST)
         if form.is_valid():
-            # re-check right before writing to close the booking race window
+            # re-check right before writing to narrow the booking race window;
+            # the unique_active_appointment_slot DB constraint is the real
+            # guarantee, caught as IntegrityError below.
             if slot_start not in get_available_slots(provider, service, slot_start.date()):
                 messages.error(request, "Ce créneau vient d'être réservé. Veuillez en choisir un autre.")
                 return redirect(search_url)
 
-            patient, _created = Patient.objects.update_or_create(
-                clinic=clinic,
-                phone_number=form.cleaned_data["phone_number"],
-                defaults={
-                    "first_name": form.cleaned_data["first_name"],
-                    "last_name": form.cleaned_data["last_name"],
-                    "email": form.cleaned_data["email"],
-                },
-            )
-            appointment = Appointment.objects.create(
-                patient=patient,
-                provider=provider,
-                service=service,
-                scheduled_start=slot_start,
-                scheduled_end=slot_start + timedelta(minutes=service.average_duration),
-            )
+            try:
+                with transaction.atomic():
+                    patient, _created = Patient.objects.update_or_create(
+                        clinic=clinic,
+                        phone_number=form.cleaned_data["phone_number"],
+                        defaults={
+                            "first_name": form.cleaned_data["first_name"],
+                            "last_name": form.cleaned_data["last_name"],
+                            "email": form.cleaned_data["email"],
+                        },
+                    )
+                    appointment = Appointment.objects.create(
+                        patient=patient,
+                        provider=provider,
+                        service=service,
+                        scheduled_start=slot_start,
+                        scheduled_end=slot_start + timedelta(minutes=service.average_duration),
+                    )
+            except IntegrityError:
+                messages.error(request, "Ce créneau vient d'être réservé. Veuillez en choisir un autre.")
+                return redirect(search_url)
+
             messages.success(request, "Rendez-vous confirmé.")
             return redirect("scheduling:appointment_manage", pk=appointment.id)
     else:
@@ -176,10 +185,16 @@ def appointment_reschedule(request, pk):
         if slot_start and slot_start in valid_slots:
             appointment.scheduled_start = slot_start
             appointment.scheduled_end = slot_start + timedelta(minutes=service.average_duration)
-            appointment.save(update_fields=["scheduled_start", "scheduled_end", "updated_at"])
-            messages.success(request, "Rendez-vous reprogrammé.")
-            return redirect("scheduling:appointment_manage", pk=appointment.id)
-        messages.error(request, "Ce créneau n'est plus disponible.")
+            try:
+                with transaction.atomic():
+                    appointment.save(update_fields=["scheduled_start", "scheduled_end", "updated_at"])
+            except IntegrityError:
+                messages.error(request, "Ce créneau n'est plus disponible.")
+            else:
+                messages.success(request, "Rendez-vous reprogrammé.")
+                return redirect("scheduling:appointment_manage", pk=appointment.id)
+        else:
+            messages.error(request, "Ce créneau n'est plus disponible.")
 
     slots = get_available_slots(provider, service, selected_date, exclude_appointment_id=appointment.id)
     return render(
