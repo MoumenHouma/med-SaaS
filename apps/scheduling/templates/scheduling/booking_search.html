@@ -48,6 +48,11 @@
             </ul>
         {% else %}
             <p>Aucun créneau disponible ce jour-là.</p>
+            <p>
+                <a href="{% url 'scheduling:waitlist_join' clinic.slug %}?provider={{ selected_provider.id }}&service={{ selected_service.id }}">
+                    Rejoindre la liste d'attente
+                </a>
+            </p>
         {% endif %}
     {% endif %}
 {% endblock %}

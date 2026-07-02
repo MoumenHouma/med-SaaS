@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Liste d'attente — {{ clinic.name }}{% endblock %}
+{% block content %}
+    <h1>Rejoindre la liste d'attente</h1>
+    <p>
+        {{ provider.full_name }}{% if service %} — {{ service.name }}{% endif %}<br>
+        {{ clinic.name }}
+    </p>
+    <p>Laissez-nous vos coordonnées, nous vous préviendrons dès qu'un créneau se libère.</p>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="provider" value="{{ provider.id }}">
+        {% if service %}<input type="hidden" name="service" value="{{ service.id }}">{% endif %}
+        {{ form.as_p }}
+        <button type="submit">Rejoindre la liste d'attente</button>
+    </form>
+{% endblock %}

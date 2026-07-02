@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from apps.clinics.models import Clinic, Provider, Service
 from apps.patients.models import Patient
-from apps.scheduling.models import Appointment, SlotTemplate
+from apps.scheduling.models import Appointment, SlotTemplate, WaitlistEntry
 
 
 def _slot_datetime(date, hour, minute=0):
@@ -213,3 +213,79 @@ def test_cancelled_appointment_refuses_reschedule(client, provider, service, pat
     response = client.get(url)
     assert response.status_code == 302
     assert response.url == reverse("scheduling:appointment_manage", kwargs={"pk": appointment.id})
+
+
+@pytest.mark.django_db
+def test_waitlist_join_creates_pending_entry(client, clinic, provider, service):
+    url = reverse("scheduling:waitlist_join", kwargs={"clinic_slug": clinic.slug})
+    response = client.post(
+        url,
+        {
+            "provider": str(provider.id),
+            "service": str(service.id),
+            "first_name": "Nadia",
+            "last_name": "B",
+            "phone_number": "0555444555",
+            "email": "",
+            "urgency": "2",
+        },
+    )
+    assert response.status_code == 302
+    entry = WaitlistEntry.objects.get()
+    assert entry.provider == provider
+    assert entry.service == service
+    assert entry.urgency == 2
+    assert entry.status == WaitlistEntry.EntryStatus.PENDING
+
+
+@pytest.mark.django_db
+def test_waitlist_offer_respond_accept_creates_appointment(client, provider, service, patient, future_date):
+    slot = _slot_datetime(future_date, 9)
+    entry = WaitlistEntry.objects.create(
+        patient=patient,
+        provider=provider,
+        service=service,
+        status=WaitlistEntry.EntryStatus.OFFERED,
+        offered_slot=slot,
+        offer_made_at=timezone.now(),
+    )
+    url = reverse("scheduling:waitlist_offer_respond", kwargs={"pk": entry.id})
+    response = client.post(url, {"action": "accept"})
+    assert response.status_code == 302
+
+    entry.refresh_from_db()
+    assert entry.status == WaitlistEntry.EntryStatus.ACCEPTED
+    appointment = Appointment.objects.get()
+    assert appointment.scheduled_start == slot
+    assert appointment.patient == patient
+
+
+@pytest.mark.django_db
+def test_waitlist_offer_respond_decline_creates_no_appointment(client, provider, service, patient, future_date):
+    slot = _slot_datetime(future_date, 9)
+    entry = WaitlistEntry.objects.create(
+        patient=patient,
+        provider=provider,
+        service=service,
+        status=WaitlistEntry.EntryStatus.OFFERED,
+        offered_slot=slot,
+        offer_made_at=timezone.now(),
+    )
+    url = reverse("scheduling:waitlist_offer_respond", kwargs={"pk": entry.id})
+    response = client.post(url, {"action": "decline"})
+    assert response.status_code == 302
+
+    entry.refresh_from_db()
+    assert entry.status == WaitlistEntry.EntryStatus.CANCELLED
+    assert Appointment.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_waitlist_offer_respond_rejects_non_offered_entry(client, provider, patient):
+    entry = WaitlistEntry.objects.create(
+        patient=patient, provider=provider, status=WaitlistEntry.EntryStatus.PENDING
+    )
+    url = reverse("scheduling:waitlist_offer_respond", kwargs={"pk": entry.id})
+    response = client.post(url, {"action": "accept"})
+    assert response.status_code == 302
+    assert Appointment.objects.count() == 0

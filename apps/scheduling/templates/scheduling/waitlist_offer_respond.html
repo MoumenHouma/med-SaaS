@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Créneau proposé — Rendia{% endblock %}
+{% block content %}
+    <h1>Un créneau s'est libéré</h1>
+    <p>
+        {{ entry.provider.full_name }}{% if entry.service %} — {{ entry.service.name }}{% endif %}<br>
+        {{ entry.offered_slot|date:'l d/m/Y à H:i' }}
+    </p>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="accept">
+        <button type="submit">Accepter ce créneau</button>
+    </form>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="decline">
+        <button type="submit">Refuser</button>
+    </form>
+{% endblock %}

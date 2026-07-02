@@ -10,8 +10,8 @@ from django.utils.dateparse import parse_date, parse_datetime
 from apps.clinics.models import Clinic, Provider, Service
 from apps.patients.models import Patient
 
-from .forms import PatientContactForm
-from .models import Appointment
+from .forms import PatientContactForm, WaitlistJoinForm
+from .models import Appointment, WaitlistEntry
 from .services.availability import get_available_slots
 
 
@@ -138,6 +138,52 @@ def booking_confirm(request, clinic_slug):
     )
 
 
+def waitlist_join(request, clinic_slug):
+    clinic = get_object_or_404(Clinic, slug=clinic_slug, is_active=True)
+    provider = get_object_or_404(
+        Provider,
+        id=request.GET.get("provider") or request.POST.get("provider"),
+        clinic=clinic,
+        is_active=True,
+    )
+    service = None
+    service_id = request.GET.get("service") or request.POST.get("service")
+    if service_id:
+        service = get_object_or_404(Service, id=service_id, provider=provider, is_active=True)
+
+    if request.method == "POST":
+        form = WaitlistJoinForm(request.POST)
+        if form.is_valid():
+            patient, _created = Patient.objects.update_or_create(
+                clinic=clinic,
+                phone_number=form.cleaned_data["phone_number"],
+                defaults={
+                    "first_name": form.cleaned_data["first_name"],
+                    "last_name": form.cleaned_data["last_name"],
+                    "email": form.cleaned_data["email"],
+                },
+            )
+            WaitlistEntry.objects.create(
+                patient=patient,
+                provider=provider,
+                service=service,
+                urgency=int(form.cleaned_data["urgency"]),
+            )
+            messages.success(
+                request,
+                "Vous êtes sur la liste d'attente. Nous vous préviendrons dès qu'un créneau se libère.",
+            )
+            return redirect("scheduling:booking_search", clinic_slug=clinic_slug)
+    else:
+        form = WaitlistJoinForm()
+
+    return render(
+        request,
+        "scheduling/waitlist_join.html",
+        {"clinic": clinic, "provider": provider, "service": service, "form": form},
+    )
+
+
 def appointment_manage(request, pk):
     appointment = get_object_or_404(Appointment, id=pk)
     modifiable_statuses = (Appointment.Status.SCHEDULED, Appointment.Status.CONFIRMED)
@@ -202,3 +248,48 @@ def appointment_reschedule(request, pk):
         "scheduling/appointment_reschedule.html",
         {"appointment": appointment, "selected_date": selected_date, "slots": slots},
     )
+
+
+def waitlist_offer_respond(request, pk):
+    entry = get_object_or_404(WaitlistEntry, id=pk)
+
+    if entry.status != WaitlistEntry.EntryStatus.OFFERED:
+        messages.error(request, "Cette offre n'est plus disponible.")
+        return redirect("scheduling:booking_search", clinic_slug=entry.provider.clinic.slug)
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "accept":
+            duration = entry.service.average_duration if entry.service else 20
+            try:
+                with transaction.atomic():
+                    appointment = Appointment.objects.create(
+                        patient=entry.patient,
+                        provider=entry.provider,
+                        service=entry.service,
+                        scheduled_start=entry.offered_slot,
+                        scheduled_end=entry.offered_slot + timedelta(minutes=duration),
+                    )
+                    entry.status = WaitlistEntry.EntryStatus.ACCEPTED
+                    entry.save(update_fields=["status", "updated_at"])
+            except IntegrityError:
+                entry.status = WaitlistEntry.EntryStatus.EXPIRED
+                entry.save(update_fields=["status", "updated_at"])
+                messages.error(
+                    request,
+                    "Ce créneau vient d'être réservé. Rejoignez la liste d'attente à nouveau si besoin.",
+                )
+                return redirect("scheduling:booking_search", clinic_slug=entry.provider.clinic.slug)
+
+            messages.success(request, "Rendez-vous confirmé.")
+            return redirect("scheduling:appointment_manage", pk=appointment.id)
+
+        if action == "decline":
+            entry.status = WaitlistEntry.EntryStatus.CANCELLED
+            entry.offered_slot = None
+            entry.save(update_fields=["status", "offered_slot", "updated_at"])
+            messages.success(request, "D'accord, vous avez été retiré(e) de la liste d'attente.")
+            return redirect("scheduling:booking_search", clinic_slug=entry.provider.clinic.slug)
+
+    return render(request, "scheduling/waitlist_offer_respond.html", {"entry": entry})

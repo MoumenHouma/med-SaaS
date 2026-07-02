@@ -50,3 +50,38 @@ def send_appointment_reminder(appointment):
     appointment.reminder_sent = True
     appointment.save(update_fields=["reminder_sent", "updated_at"])
     return True
+
+
+def build_waitlist_offer_url(entry):
+    path = reverse("scheduling:waitlist_offer_respond", kwargs={"pk": entry.id})
+    return f"{settings.SITE_URL.rstrip('/')}{path}"
+
+
+def send_waitlist_offer_email(entry):
+    """
+    Sends the "a slot opened up" email for a waitlist offer. Returns True if
+    sent, False if skipped (no email on file) -- same not-applicable-not-a-
+    failure convention as send_appointment_reminder.
+    """
+    patient = entry.patient
+    if not patient.email:
+        return False
+
+    subject = f"Un créneau s'est libéré — {entry.provider.clinic.name}"
+    offer_url = build_waitlist_offer_url(entry)
+    body = (
+        f"Bonjour {patient.first_name},\n\n"
+        f"Un créneau s'est libéré avec {entry.provider.full_name} "
+        f"le {entry.offered_slot:%A %d/%m/%Y à %H:%M}.\n\n"
+        f"Pour accepter ou refuser ce créneau, suivez ce lien :\n"
+        f"{offer_url}\n\n"
+        f"À bientôt,\n{entry.provider.clinic.name}"
+    )
+
+    send_mail(
+        subject=subject,
+        message=body,
+        from_email=None,
+        recipient_list=[patient.email],
+    )
+    return True
