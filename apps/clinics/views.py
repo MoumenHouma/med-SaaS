@@ -13,6 +13,10 @@ from apps.scheduling.models import Appointment
 from .forms import ClinicOnboardingForm, ProviderForm, ServiceForm
 from .models import Clinic, ClinicStaff, Provider
 
+# An appointment at or above this predicted no-show probability is flagged
+# "at risk" on the dashboard (both the KPI tile count and the per-row badge).
+AT_RISK_THRESHOLD = 0.5
+
 
 class ClinicStaffRequiredMixin(LoginRequiredMixin):
     """
@@ -81,8 +85,11 @@ class DashboardView(ClinicStaffRequiredMixin, TemplateView):
             .order_by("scheduled_start")
         )
         context["today_appointments"] = today_appointments
+        context["at_risk_threshold"] = AT_RISK_THRESHOLD
         context["at_risk_count"] = sum(
-            1 for appt in today_appointments if appt.no_show_probability and appt.no_show_probability >= 0.5
+            1
+            for appt in today_appointments
+            if appt.no_show_probability and appt.no_show_probability >= AT_RISK_THRESHOLD
         )
         context["booking_url"] = self.request.build_absolute_uri(
             reverse("scheduling:booking_search", kwargs={"clinic_slug": self.clinic.slug})

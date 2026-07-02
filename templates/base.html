@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Rendia{% endblock %}</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script defer src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script defer src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
-    <script>
+    <script defer>
         tailwind.config = {
             theme: {
                 extend: {
@@ -49,7 +49,7 @@
         </nav>
     </header>
 
-    <main class="flex-1 mx-auto w-full max-w-5xl px-4 sm:px-6 py-8">
+    <main id="page-content" class="flex-1 mx-auto w-full max-w-5xl px-4 sm:px-6 py-8">
         {% if messages %}
             <div class="mb-6 space-y-2">
                 {% for message in messages %}

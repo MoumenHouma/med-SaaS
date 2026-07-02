@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load rendia_extras %}
 {% block title %}Tableau de bord — {{ clinic.name }}{% endblock %}
 {% block content %}
     <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
@@ -35,6 +36,10 @@
         <div class="flex items-center gap-2">
             <input type="text" readonly value="{{ booking_url }}" x-ref="bookingUrl"
                    class="flex-1 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+            <a href="{{ booking_url }}" target="_blank" rel="noopener"
+               class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition whitespace-nowrap">
+                Ouvrir
+            </a>
             <button type="button"
                     x-on:click="navigator.clipboard.writeText($refs.bookingUrl.value); copied = true; setTimeout(function() { copied = false }, 1500)"
                     class="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 transition whitespace-nowrap">
@@ -109,7 +114,7 @@
                                 <td class="px-4 py-3 font-medium text-gray-900">{{ appt.scheduled_start|date:"H:i" }}</td>
                                 <td class="px-4 py-3">
                                     {{ appt.patient.full_name }}
-                                    {% if appt.no_show_probability and appt.no_show_probability >= 0.5 %}
+                                    {% if appt.no_show_probability and appt.no_show_probability >= at_risk_threshold %}
                                         <span class="ml-1 inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 border border-red-200">
                                             risque {% widthratio appt.no_show_probability 1 100 %}%
                                         </span>
@@ -118,12 +123,7 @@
                                 <td class="px-4 py-3 text-gray-600">{{ appt.provider.full_name }}</td>
                                 <td class="px-4 py-3 text-gray-600">{{ appt.service.name }}</td>
                                 <td class="px-4 py-3">
-                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
-                                        {% if appt.status == "completed" %} bg-green-50 text-green-700 border border-green-200
-                                        {% elif appt.status == "cancelled" or appt.status == "no_show" %} bg-gray-100 text-gray-500 border border-gray-200
-                                        {% elif appt.status == "checked_in" %} bg-blue-50 text-blue-700 border border-blue-200
-                                        {% else %} bg-amber-50 text-amber-700 border border-amber-200
-                                        {% endif %}">
+                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{ appt.status|status_badge_class }}">
                                         {{ appt.get_status_display }}
                                     </span>
                                 </td>
