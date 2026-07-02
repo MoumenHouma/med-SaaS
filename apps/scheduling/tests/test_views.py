@@ -199,6 +199,101 @@ def test_cancelled_appointment_refuses_further_cancel(client, provider, service,
 
 
 @pytest.mark.django_db
+def test_check_in_sets_actual_start_and_status(client, provider, service, patient, future_date):
+    start = _slot_datetime(future_date, 9)
+    appointment = Appointment.objects.create(
+        patient=patient,
+        provider=provider,
+        service=service,
+        scheduled_start=start,
+        scheduled_end=start + timedelta(minutes=service.average_duration),
+    )
+    url = reverse("scheduling:appointment_manage", kwargs={"pk": appointment.id})
+    response = client.post(url, {"action": "check_in"})
+    assert response.status_code == 302
+    appointment.refresh_from_db()
+    assert appointment.status == Appointment.Status.CHECKED_IN
+    assert appointment.actual_start is not None
+
+
+@pytest.mark.django_db
+def test_check_in_rejects_cancelled_appointment(client, provider, service, patient, future_date):
+    start = _slot_datetime(future_date, 9)
+    appointment = Appointment.objects.create(
+        patient=patient,
+        provider=provider,
+        service=service,
+        scheduled_start=start,
+        scheduled_end=start + timedelta(minutes=service.average_duration),
+        status=Appointment.Status.CANCELLED,
+    )
+    url = reverse("scheduling:appointment_manage", kwargs={"pk": appointment.id})
+    response = client.post(url, {"action": "check_in"})
+    assert response.status_code == 302
+    appointment.refresh_from_db()
+    assert appointment.status == Appointment.Status.CANCELLED
+    assert appointment.actual_start is None
+
+
+@pytest.mark.django_db
+def test_complete_sets_actual_end_and_status(client, provider, service, patient, future_date):
+    start = _slot_datetime(future_date, 9)
+    appointment = Appointment.objects.create(
+        patient=patient,
+        provider=provider,
+        service=service,
+        scheduled_start=start,
+        scheduled_end=start + timedelta(minutes=service.average_duration),
+        status=Appointment.Status.CHECKED_IN,
+        actual_start=start,
+    )
+    url = reverse("scheduling:appointment_manage", kwargs={"pk": appointment.id})
+    response = client.post(url, {"action": "complete", "delay_reason": ""})
+    assert response.status_code == 302
+    appointment.refresh_from_db()
+    assert appointment.status == Appointment.Status.COMPLETED
+    assert appointment.actual_end is not None
+    assert appointment.delay_reason == ""
+
+
+@pytest.mark.django_db
+def test_complete_auto_suggests_late_arrival(client, provider, service, patient, future_date):
+    start = _slot_datetime(future_date, 9)
+    appointment = Appointment.objects.create(
+        patient=patient,
+        provider=provider,
+        service=service,
+        scheduled_start=start,
+        scheduled_end=start + timedelta(minutes=service.average_duration),
+        status=Appointment.Status.CHECKED_IN,
+        actual_start=start + timedelta(minutes=20),
+    )
+    url = reverse("scheduling:appointment_manage", kwargs={"pk": appointment.id})
+    response = client.post(url, {"action": "complete"})
+    assert response.status_code == 302
+    appointment.refresh_from_db()
+    assert appointment.delay_reason == Appointment.DelayReason.LATE_ARRIVAL
+
+
+@pytest.mark.django_db
+def test_complete_rejects_non_checked_in_appointment(client, provider, service, patient, future_date):
+    start = _slot_datetime(future_date, 9)
+    appointment = Appointment.objects.create(
+        patient=patient,
+        provider=provider,
+        service=service,
+        scheduled_start=start,
+        scheduled_end=start + timedelta(minutes=service.average_duration),
+    )
+    url = reverse("scheduling:appointment_manage", kwargs={"pk": appointment.id})
+    response = client.post(url, {"action": "complete"})
+    assert response.status_code == 302
+    appointment.refresh_from_db()
+    assert appointment.status == Appointment.Status.SCHEDULED
+    assert appointment.actual_end is None
+
+
+@pytest.mark.django_db
 def test_cancelled_appointment_refuses_reschedule(client, provider, service, patient, future_date):
     start = _slot_datetime(future_date, 9)
     appointment = Appointment.objects.create(

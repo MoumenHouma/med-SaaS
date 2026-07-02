@@ -184,6 +184,38 @@ def waitlist_join(request, clinic_slug):
     )
 
 
+# A visit finishing more than this many minutes after its scheduled start is
+# considered delayed for Pareto/bottleneck classification purposes.
+LATE_THRESHOLD_MINUTES = 10
+
+
+def _suggest_delay_reason(appointment):
+    """
+    Auto-suggests a delay_reason from actual_start vs scheduled_start, plus
+    whether the provider's immediately preceding appointment that day ran
+    over. Staff can still override the suggestion in the "complete" form.
+    """
+    if not appointment.actual_start:
+        return ""
+    late_by = appointment.actual_start - appointment.scheduled_start
+    if late_by <= timedelta(minutes=LATE_THRESHOLD_MINUTES):
+        return ""
+
+    previous = (
+        Appointment.objects.filter(
+            provider=appointment.provider,
+            scheduled_start__date=appointment.scheduled_start.date(),
+            scheduled_start__lt=appointment.scheduled_start,
+        )
+        .exclude(status__in=[Appointment.Status.CANCELLED, Appointment.Status.NO_SHOW])
+        .order_by("-scheduled_start")
+        .first()
+    )
+    if previous and previous.actual_end and previous.actual_end > previous.scheduled_end:
+        return Appointment.DelayReason.PROVIDER_OVERRUN
+    return Appointment.DelayReason.LATE_ARRIVAL
+
+
 def appointment_manage(request, pk):
     appointment = get_object_or_404(Appointment, id=pk)
     modifiable_statuses = (Appointment.Status.SCHEDULED, Appointment.Status.CONFIRMED)
@@ -197,11 +229,35 @@ def appointment_manage(request, pk):
             messages.error(request, "Ce rendez-vous ne peut plus être annulé.")
         return redirect("scheduling:appointment_manage", pk=appointment.id)
 
-    return render(
-        request,
-        "scheduling/appointment_manage.html",
-        {"appointment": appointment, "can_modify": appointment.status in modifiable_statuses},
-    )
+    if request.method == "POST" and request.POST.get("action") == "check_in":
+        if appointment.status in modifiable_statuses:
+            appointment.status = Appointment.Status.CHECKED_IN
+            appointment.actual_start = timezone.now()
+            appointment.save(update_fields=["status", "actual_start", "updated_at"])
+            messages.success(request, "Arrivée du patient enregistrée.")
+        else:
+            messages.error(request, "Impossible d'enregistrer l'arrivée pour ce rendez-vous.")
+        return redirect("scheduling:appointment_manage", pk=appointment.id)
+
+    if request.method == "POST" and request.POST.get("action") == "complete":
+        if appointment.status == Appointment.Status.CHECKED_IN:
+            appointment.actual_end = timezone.now()
+            appointment.status = Appointment.Status.COMPLETED
+            delay_reason = request.POST.get("delay_reason", "")
+            if delay_reason not in dict(Appointment.DelayReason.choices):
+                delay_reason = _suggest_delay_reason(appointment)
+            appointment.delay_reason = delay_reason
+            appointment.save(update_fields=["status", "actual_end", "delay_reason", "updated_at"])
+            messages.success(request, "Consultation terminée.")
+        else:
+            messages.error(request, "Impossible de terminer ce rendez-vous.")
+        return redirect("scheduling:appointment_manage", pk=appointment.id)
+
+    context = {"appointment": appointment, "can_modify": appointment.status in modifiable_statuses}
+    if appointment.status == Appointment.Status.CHECKED_IN:
+        context["suggested_delay_reason"] = _suggest_delay_reason(appointment)
+        context["delay_reason_choices"] = Appointment.DelayReason.choices
+    return render(request, "scheduling/appointment_manage.html", context)
 
 
 def appointment_reschedule(request, pk):

@@ -16,5 +16,28 @@
             <input type="hidden" name="action" value="cancel">
             <button type="submit">Annuler le rendez-vous</button>
         </form>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="check_in">
+            <button type="submit">Enregistrer l'arrivée</button>
+        </form>
+    {% endif %}
+
+    {% if appointment.status == "checked_in" %}
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="complete">
+            <label>Cause du retard (si applicable) :
+                <select name="delay_reason">
+                    <option value="">-- Aucune --</option>
+                    {% for value, label in delay_reason_choices %}
+                        <option value="{{ value }}" {% if value == suggested_delay_reason %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button type="submit">Terminer la consultation</button>
+        </form>
     {% endif %}
 {% endblock %}

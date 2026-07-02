@@ -27,6 +27,25 @@
         <p>Aucun rendez-vous aujourd'hui.</p>
     {% endif %}
 
+    {% if delay_breakdown %}
+        <h2>Causes de retard (30 derniers jours)</h2>
+        <ul>
+            {% for row in delay_breakdown %}
+                <li>
+                    {{ row.label }} — {{ row.count }}
+                    <div style="background:#e5e7eb;width:200px;height:10px;">
+                        <div style="height:10px;width:{% widthratio row.count delay_breakdown.0.count 100 %}%;
+                            {% if row.delay_reason == 'late_arrival' %}background:#f59e0b;
+                            {% elif row.delay_reason == 'provider_overrun' %}background:#3b82f6;
+                            {% elif row.delay_reason == 'room_unavailable' %}background:#8b5cf6;
+                            {% elif row.delay_reason == 'admin_lag' %}background:#6b7280;
+                            {% else %}background:#94a3b8;{% endif %}"></div>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
     <h2>Médecins / Praticiens</h2>
     <p><a href="{% url 'clinics:provider_add' %}">+ Ajouter un médecin</a></p>
 
