@@ -1,13 +1,13 @@
 """
-Dynamic waitlist matching (project plan, section 2.3): a small bipartite-
-matching problem, distinct from and much simpler than the full slot
-allocation MIP. When a slot is available, score every pending WaitlistEntry
-for that provider and offer it to the best match.
+Dynamic waitlist matching support (project plan, section 2.3). The actual
+demand-to-slot assignment is the CP-SAT allocator in
+apps.optimization.services.scheduler; this module covers the pieces around
+it -- priority scoring (used both as the allocator's urgency/wait-time input
+and as a cached ranking field) and offer expiry.
 """
 
 from datetime import timedelta
 
-from django.db.models import Q
 from django.utils import timezone
 
 from apps.scheduling.models import WaitlistEntry
@@ -26,27 +26,6 @@ def compute_priority_score(entry, now=None):
     now = now or timezone.now()
     wait_hours = (now - entry.created_at).total_seconds() / 3600
     return round(entry.urgency * 100 + min(wait_hours, MAX_WAIT_HOURS_CONTRIBUTION), 2)
-
-
-def find_best_match(provider, service=None, now=None):
-    """
-    Returns the highest-scoring PENDING WaitlistEntry for this provider (and,
-    if given, this service or a service-agnostic entry), or None if there are
-    no pending entries. Scores are recomputed fresh rather than read from the
-    cached priority_score field, since wait time changes continuously.
-    """
-    candidates = WaitlistEntry.objects.filter(
-        provider=provider, status=WaitlistEntry.EntryStatus.PENDING
-    )
-    if service is not None:
-        candidates = candidates.filter(Q(service=service) | Q(service__isnull=True))
-
-    best_entry, best_score = None, None
-    for entry in candidates:
-        score = compute_priority_score(entry, now=now)
-        if best_score is None or score > best_score:
-            best_entry, best_score = entry, score
-    return best_entry
 
 
 def expire_stale_offers(expiry_hours, now=None):

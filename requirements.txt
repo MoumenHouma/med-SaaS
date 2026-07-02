@@ -16,6 +16,9 @@ pillow
 # Optimization engine: no-show prediction (logistic regression)
 scikit-learn==1.9.0
 
+# Optimization engine: slot allocation (CP-SAT mixed-integer program)
+ortools==9.15.6755
+
 # Testing
 pytest==9.1.1
 pytest-django==4.12.0
