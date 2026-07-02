@@ -15,3 +15,7 @@ pillow
 
 # Optimization engine: no-show prediction (logistic regression)
 scikit-learn==1.9.0
+
+# Testing
+pytest==9.1.1
+pytest-django==4.12.0
