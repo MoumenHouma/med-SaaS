@@ -14,7 +14,7 @@ apps/core/           BaseModel (UUID PK, timestamps) — inherited by every mode
 apps/clinics/        Clinic, Provider, Service, ClinicStaff (auth link for dashboard login)
 apps/patients/       Patient (minimal PII, clinic-isolated — see Law 18-07 compliance note in the module docstring)
 apps/scheduling/     SlotTemplate, Appointment, WaitlistEntry
-apps/optimization/   OptimizationRun (audit log); services/ (predictor, scheduler, waitlist) not yet implemented
+apps/optimization/   OptimizationRun (audit log); services/ (predictor implemented; scheduler, waitlist not yet implemented)
 ```
 
 ## Local setup
@@ -33,4 +33,6 @@ Local dev uses SQLite automatically (`config.settings.local`, set in `manage.py`
 
 ## Current status
 
-Schema and admin are in place for all five apps; migrations are generated and apply cleanly. No views/forms/booking flow yet — that's the Phase 1 MVP work per the project plan.
+Schema and admin are in place for all five apps; migrations are generated and apply cleanly. Registration, login, clinic onboarding, and the staff dashboard are implemented, as is the full patient booking flow (search, confirm, manage, cancel, reschedule). Email appointment reminders are implemented (`apps.scheduling.services.reminders` + the `send_appointment_reminders` management command), and no-show prediction is implemented as a cold-start heuristic that upgrades to a per-clinic logistic regression once a clinic has enough history (`apps.optimization.services.predictor` + the `run_no_show_prediction` management command). A pytest-django test suite now covers models, services, views, and management commands, and a `/health/` endpoint is available for uptime monitoring.
+
+Still pending: the MIP/CP-SAT slot optimizer (`get_available_slots` is still the Phase 1 rule-based heuristic, not the full optimizer) and dynamic waitlist matching — both referenced as planned in `apps/optimization/models.py`'s module docstring but not yet built.

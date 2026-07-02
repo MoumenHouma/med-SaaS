@@ -1,5 +1,6 @@
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 
 from .forms import RegisterForm
@@ -30,3 +31,8 @@ def register(request):
         form = RegisterForm()
 
     return render(request, "core/register.html", {"form": form})
+
+
+def health(request):
+    """Unauthenticated liveness check for uptime monitors / load balancers."""
+    return JsonResponse({"status": "ok"})
