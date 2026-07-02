@@ -27,6 +27,26 @@
         <p>Aucun rendez-vous aujourd'hui.</p>
     {% endif %}
 
+    <h2>Taux d'utilisation (semaine en cours)</h2>
+    <p>{{ utilization_pct }}%</p>
+
+    {% if no_show_trend %}
+        <h2>Tendance des absences (8 dernières semaines)</h2>
+        <div style="display:flex;align-items:flex-end;gap:4px;height:60px;">
+            {% for label, rate in no_show_trend %}
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:60px;width:24px;"
+                     title="{{ label }} : {{ rate }}%">
+                    <div style="width:20px;height:{{ rate|floatformat:0 }}%;background:#ef4444;"></div>
+                </div>
+            {% endfor %}
+        </div>
+        <div style="display:flex;gap:4px;">
+            {% for label, rate in no_show_trend %}
+                <span style="width:24px;font-size:10px;text-align:center;">{{ label }}</span>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     {% if delay_breakdown %}
         <h2>Causes de retard (30 derniers jours)</h2>
         <ul>

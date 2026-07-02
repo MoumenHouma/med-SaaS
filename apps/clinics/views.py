@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.views.generic import CreateView, TemplateView
 
-from apps.optimization.services.analytics import bottleneck_breakdown
+from apps.optimization.services.analytics import bottleneck_breakdown, no_show_trend, weekly_utilization
 from apps.scheduling.models import Appointment
 
 from .forms import ClinicOnboardingForm, ProviderForm, ServiceForm
@@ -80,6 +80,8 @@ class DashboardView(ClinicStaffRequiredMixin, TemplateView):
             .order_by("scheduled_start")
         )
         context["delay_breakdown"] = bottleneck_breakdown(self.clinic)
+        context["utilization_pct"] = weekly_utilization(self.clinic)
+        context["no_show_trend"] = no_show_trend(self.clinic)
         return context
 
 
