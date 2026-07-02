@@ -1,11 +1,32 @@
 {% extends "base.html" %}
 {% block title %}Créer un compte — Rendia{% endblock %}
 {% block content %}
-    <h1>Créer votre compte clinique</h1>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Créer le compte</button>
-    </form>
-    <p><a href="{% url 'login' %}">J'ai déjà un compte</a></p>
+    <div class="mx-auto max-w-sm">
+        <h1 class="text-2xl font-bold text-gray-900 mb-1">Créer votre compte</h1>
+        <p class="text-sm text-gray-500 mb-6">Vous créerez ensuite votre clinique à l'étape suivante.</p>
+
+        <form method="post" class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
+            {% csrf_token %}
+            {% for field in form %}
+                <div>
+                    <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                        <p class="mt-1 text-xs text-gray-400">{{ field.help_text }}</p>
+                    {% endif %}
+                    {% if field.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ field.errors|join:", " }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <button type="submit" class="w-full inline-flex justify-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition">
+                Créer le compte
+            </button>
+        </form>
+
+        <p class="mt-4 text-sm text-gray-500 text-center">
+            J'ai déjà un compte —
+            <a href="{% url 'login' %}" class="text-brand-700 font-medium hover:underline">se connecter</a>
+        </p>
+    </div>
 {% endblock %}

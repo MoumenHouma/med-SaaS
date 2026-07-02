@@ -1,17 +1,34 @@
 {% extends "base.html" %}
-{% block title %}Confirmer le rendez-vous — {{ clinic.name }}{% endblock %}
+{% block title %}Confirmer le rendez-vous{% endblock %}
 {% block content %}
-    <h1>Confirmer votre rendez-vous</h1>
-    <p>
-        {{ provider.full_name }} — {{ service.name }}<br>
-        {{ slot_start|date:'l d/m/Y à H:i' }}
-    </p>
-    <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="provider" value="{{ provider.id }}">
-        <input type="hidden" name="service" value="{{ service.id }}">
-        <input type="hidden" name="slot" value="{{ slot_start|date:'c' }}">
-        {{ form.as_p }}
-        <button type="submit">Confirmer le rendez-vous</button>
-    </form>
+    <div class="mx-auto max-w-lg">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">Confirmer votre rendez-vous</h1>
+
+        <div class="rounded-xl border border-brand-200 bg-brand-50 p-4 mb-6">
+            <p class="font-semibold text-brand-900">{{ provider.full_name }} - {{ service.name }}</p>
+            <p class="text-sm text-brand-700">{{ slot_start|date:'l d/m/Y à H:i' }}</p>
+        </div>
+
+        <form method="post" class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="provider" value="{{ provider.id }}">
+            <input type="hidden" name="service" value="{{ service.id }}">
+            <input type="hidden" name="slot" value="{{ slot_start|date:'c' }}">
+            {% for field in form %}
+                <div>
+                    <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                        <p class="mt-1 text-xs text-gray-400">{{ field.help_text }}</p>
+                    {% endif %}
+                    {% if field.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ field.errors|join:", " }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <button type="submit" class="w-full inline-flex justify-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition">
+                Confirmer le rendez-vous
+            </button>
+        </form>
+    </div>
 {% endblock %}

@@ -1,43 +1,71 @@
 {% extends "base.html" %}
-{% block title %}Votre rendez-vous — Rendia{% endblock %}
+{% block title %}Votre rendez-vous{% endblock %}
 {% block content %}
-    <h1>Rendez-vous</h1>
-    <p>
-        {{ appointment.patient.full_name }} — {{ appointment.provider.full_name }}<br>
-        {{ appointment.service.name }}<br>
-        {{ appointment.scheduled_start|date:'l d/m/Y à H:i' }}<br>
-        Statut : {{ appointment.get_status_display }}
-    </p>
+    <div class="mx-auto max-w-lg">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">Rendez-vous</h1>
 
-    {% if can_modify %}
-        <p><a href="{% url 'scheduling:appointment_reschedule' appointment.id %}">Reprogrammer</a></p>
-        <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="cancel">
-            <button type="submit">Annuler le rendez-vous</button>
-        </form>
-        <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="check_in">
-            <button type="submit">Enregistrer l'arrivée</button>
-        </form>
-    {% endif %}
+        <div class="rounded-xl border border-gray-200 bg-white p-5 mb-6">
+            <div class="flex items-center justify-between mb-2">
+                <p class="font-semibold text-gray-900">{{ appointment.provider.full_name }}</p>
+                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
+                    {% if appointment.status == "completed" %} bg-green-50 text-green-700 border border-green-200
+                    {% elif appointment.status == "cancelled" or appointment.status == "no_show" %} bg-gray-100 text-gray-500 border border-gray-200
+                    {% elif appointment.status == "checked_in" %} bg-blue-50 text-blue-700 border border-blue-200
+                    {% else %} bg-amber-50 text-amber-700 border border-amber-200
+                    {% endif %}">
+                    {{ appointment.get_status_display }}
+                </span>
+            </div>
+            <p class="text-sm text-gray-600">{{ appointment.patient.full_name }} - {{ appointment.service.name }}</p>
+            <p class="text-sm text-gray-500 mt-1">{{ appointment.scheduled_start|date:"l d/m/Y à H:i" }}</p>
+        </div>
 
-    {% if appointment.status == "checked_in" %}
-        <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="complete">
-            <label>Cause du retard (si applicable) :
-                <select name="delay_reason">
-                    <option value="">-- Aucune --</option>
-                    {% for value, label in delay_reason_choices %}
-                        <option value="{{ value }}" {% if value == suggested_delay_reason %}selected{% endif %}>
-                            {{ label }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </label>
-            <button type="submit">Terminer la consultation</button>
-        </form>
-    {% endif %}
+        {% if can_modify %}
+            <div class="flex gap-3 mb-3">
+                <a href="{% url 'scheduling:appointment_reschedule' appointment.id %}"
+                   class="flex-1 text-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
+                    Reprogrammer
+                </a>
+                <form method="post" class="flex-1">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="cancel">
+                    <button type="submit"
+                            class="w-full rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100 transition">
+                        Annuler le rendez-vous
+                    </button>
+                </form>
+            </div>
+            <form method="post" class="mb-3">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="check_in">
+                <button type="submit"
+                        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
+                    Enregistrer l'arrivée
+                </button>
+            </form>
+        {% endif %}
+
+        {% if appointment.status == "checked_in" %}
+            <form method="post" class="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="complete">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Cause du retard (si applicable)</label>
+                    <select name="delay_reason"
+                            class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 focus:outline-none">
+                        <option value="">-- Aucune --</option>
+                        {% for value, label in delay_reason_choices %}
+                            <option value="{{ value }}" {% if value == suggested_delay_reason %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit"
+                        class="w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition">
+                    Terminer la consultation
+                </button>
+            </form>
+        {% endif %}
+    </div>
 {% endblock %}

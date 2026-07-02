@@ -1,93 +1,179 @@
 {% extends "base.html" %}
 {% block title %}Tableau de bord — {{ clinic.name }}{% endblock %}
 {% block content %}
-    <h1>{{ clinic.name }}</h1>
-    <p>{{ clinic.wilaya }} — Abonnement : {{ clinic.get_subscription_tier_display }}</p>
-    <p>
-        Lien de prise de rendez-vous public :
-        <a href="{% url 'scheduling:booking_search' clinic.slug %}">{% url 'scheduling:booking_search' clinic.slug %}</a>
-    </p>
+    <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">{{ clinic.name }}</h1>
+            <p class="text-sm text-gray-500">{{ clinic.wilaya }}</p>
+        </div>
+        <span class="inline-flex items-center rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 border border-brand-200">
+            Abonnement {{ clinic.get_subscription_tier_display }}
+        </span>
+    </div>
 
-    <h2>Rendez-vous d'aujourd'hui</h2>
-    {% if today_appointments %}
-        <table>
-            <tr><th>Heure</th><th>Patient</th><th>Médecin</th><th>Service</th><th>Statut</th><th></th></tr>
-            {% for appt in today_appointments %}
-                <tr>
-                    <td>{{ appt.scheduled_start|date:'H:i' }}</td>
-                    <td>{{ appt.patient.full_name }}</td>
-                    <td>{{ appt.provider.full_name }}</td>
-                    <td>{{ appt.service.name }}</td>
-                    <td>{{ appt.get_status_display }}</td>
-                    <td><a href="{% url 'scheduling:appointment_manage' appt.id %}">Gérer</a></td>
-                </tr>
-            {% endfor %}
-        </table>
-    {% else %}
-        <p>Aucun rendez-vous aujourd'hui.</p>
-    {% endif %}
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+        <div class="rounded-xl border border-gray-200 bg-white p-4">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Rendez-vous du jour</p>
+            <p class="mt-1 text-3xl font-bold text-gray-900">{{ today_appointments|length }}</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-white p-4">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Médecins actifs</p>
+            <p class="mt-1 text-3xl font-bold text-gray-900">{{ providers|length }}</p>
+        </div>
+        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <p class="text-xs font-medium text-amber-700 uppercase tracking-wide">Absences prédites</p>
+            <p class="mt-1 text-3xl font-bold text-amber-800">{{ at_risk_count }}</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-white p-4">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Taux d'utilisation</p>
+            <p class="mt-1 text-3xl font-bold text-gray-900">{{ utilization_pct }}%</p>
+        </div>
+    </div>
 
-    <h2>Taux d'utilisation (semaine en cours)</h2>
-    <p>{{ utilization_pct }}%</p>
+    <div class="mb-8 rounded-xl border border-gray-200 bg-white p-4" x-data="{copied: false}">
+        <p class="text-sm font-medium text-gray-700 mb-2">Lien de prise de rendez-vous public</p>
+        <div class="flex items-center gap-2">
+            <input type="text" readonly value="{{ booking_url }}" x-ref="bookingUrl"
+                   class="flex-1 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+            <button type="button"
+                    x-on:click="navigator.clipboard.writeText($refs.bookingUrl.value); copied = true; setTimeout(function() { copied = false }, 1500)"
+                    class="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 transition whitespace-nowrap">
+                <span x-show="!copied">Copier</span>
+                <span x-show="copied" class="text-brand-700">Copié !</span>
+            </button>
+        </div>
+    </div>
 
     {% if no_show_trend %}
-        <h2>Tendance des absences (8 dernières semaines)</h2>
-        <div style="display:flex;align-items:flex-end;gap:4px;height:60px;">
-            {% for label, rate in no_show_trend %}
-                <div style="display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:60px;width:24px;"
-                     title="{{ label }} : {{ rate }}%">
-                    <div style="width:20px;height:{{ rate|floatformat:0 }}%;background:#ef4444;"></div>
-                </div>
-            {% endfor %}
-        </div>
-        <div style="display:flex;gap:4px;">
-            {% for label, rate in no_show_trend %}
-                <span style="width:24px;font-size:10px;text-align:center;">{{ label }}</span>
-            {% endfor %}
+        <div class="mb-8 rounded-xl border border-gray-200 bg-white p-4">
+            <h2 class="text-lg font-semibold text-gray-900 mb-3">Tendance des absences (8 dernières semaines)</h2>
+            <div class="flex items-end gap-1" style="height:60px;">
+                {% for label, rate in no_show_trend %}
+                    <div class="flex flex-col justify-end items-center" style="height:60px;width:24px;"
+                         title="{{ label }} : {{ rate }}%">
+                        <div class="w-5 rounded-t bg-red-400" style="height:{{ rate|floatformat:0 }}%;"></div>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="flex gap-1 mt-1">
+                {% for label, rate in no_show_trend %}
+                    <span class="text-gray-400" style="width:24px;font-size:10px;text-align:center;">{{ label }}</span>
+                {% endfor %}
+            </div>
         </div>
     {% endif %}
 
     {% if delay_breakdown %}
-        <h2>Causes de retard (30 derniers jours)</h2>
-        <ul>
-            {% for row in delay_breakdown %}
-                <li>
-                    {{ row.label }} — {{ row.count }}
-                    <div style="background:#e5e7eb;width:200px;height:10px;">
-                        <div style="height:10px;width:{% widthratio row.count delay_breakdown.0.count 100 %}%;
-                            {% if row.delay_reason == 'late_arrival' %}background:#f59e0b;
-                            {% elif row.delay_reason == 'provider_overrun' %}background:#3b82f6;
-                            {% elif row.delay_reason == 'room_unavailable' %}background:#8b5cf6;
-                            {% elif row.delay_reason == 'admin_lag' %}background:#6b7280;
-                            {% else %}background:#94a3b8;{% endif %}"></div>
+        <div class="mb-8 rounded-xl border border-gray-200 bg-white p-4">
+            <h2 class="text-lg font-semibold text-gray-900 mb-3">Causes de retard (30 derniers jours)</h2>
+            <ul class="space-y-2">
+                {% for row in delay_breakdown %}
+                    <li>
+                        <div class="flex justify-between text-sm text-gray-700 mb-1">
+                            <span>{{ row.label }}</span>
+                            <span class="font-medium text-gray-900">{{ row.count }}</span>
+                        </div>
+                        <div class="h-2 rounded-full bg-gray-100">
+                            <div class="h-2 rounded-full
+                                {% if row.delay_reason == 'late_arrival' %}bg-amber-500
+                                {% elif row.delay_reason == 'provider_overrun' %}bg-blue-500
+                                {% elif row.delay_reason == 'room_unavailable' %}bg-violet-500
+                                {% elif row.delay_reason == 'admin_lag' %}bg-gray-500
+                                {% else %}bg-slate-400{% endif %}"
+                                style="width:{% widthratio row.count delay_breakdown.0.count 100 %}%;"></div>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <div class="mb-8">
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">Rendez-vous du jour</h2>
+        {% if today_appointments %}
+            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                        <tr>
+                            <th class="px-4 py-3">Heure</th>
+                            <th class="px-4 py-3">Patient</th>
+                            <th class="px-4 py-3">Médecin</th>
+                            <th class="px-4 py-3">Service</th>
+                            <th class="px-4 py-3">Statut</th>
+                            <th class="px-4 py-3"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for appt in today_appointments %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 font-medium text-gray-900">{{ appt.scheduled_start|date:"H:i" }}</td>
+                                <td class="px-4 py-3">
+                                    {{ appt.patient.full_name }}
+                                    {% if appt.no_show_probability and appt.no_show_probability >= 0.5 %}
+                                        <span class="ml-1 inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 border border-red-200">
+                                            risque {% widthratio appt.no_show_probability 1 100 %}%
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-gray-600">{{ appt.provider.full_name }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ appt.service.name }}</td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
+                                        {% if appt.status == "completed" %} bg-green-50 text-green-700 border border-green-200
+                                        {% elif appt.status == "cancelled" or appt.status == "no_show" %} bg-gray-100 text-gray-500 border border-gray-200
+                                        {% elif appt.status == "checked_in" %} bg-blue-50 text-blue-700 border border-blue-200
+                                        {% else %} bg-amber-50 text-amber-700 border border-amber-200
+                                        {% endif %}">
+                                        {{ appt.get_status_display }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    <a href="{% url 'scheduling:appointment_manage' appt.id %}" class="text-brand-700 hover:underline font-medium">Gérer</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-sm text-gray-500">Aucun rendez-vous aujourd’hui.</p>
+        {% endif %}
+    </div>
+
+    <div>
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-lg font-semibold text-gray-900">Médecins / Praticiens</h2>
+            <a href="{% url 'clinics:provider_add' %}" class="text-sm font-medium text-brand-700 hover:underline">+ Ajouter un médecin</a>
+        </div>
+
+        {% if providers %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {% for provider in providers %}
+                    <div class="rounded-xl border border-gray-200 bg-white p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-semibold text-gray-900">{{ provider.full_name }}</p>
+                                <p class="text-sm text-gray-500">{{ provider.specialty }}</p>
+                            </div>
+                            <a href="{% url 'clinics:service_add' provider.id %}" class="text-xs font-medium text-brand-700 hover:underline whitespace-nowrap">+ Service</a>
+                        </div>
+                        {% if provider.services.all %}
+                            <ul class="mt-3 space-y-1 text-sm text-gray-600 border-t border-gray-100 pt-3">
+                                {% for service in provider.services.all %}
+                                    <li class="flex justify-between">
+                                        <span>{{ service.name }} <span class="text-gray-400">({{ service.average_duration }} min)</span></span>
+                                        <span class="font-medium text-gray-900">{{ service.price }} DZD</span>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="mt-3 text-sm text-gray-400 border-t border-gray-100 pt-3">Aucun service pour le moment.</p>
+                        {% endif %}
                     </div>
-                </li>
-            {% endfor %}
-        </ul>
-    {% endif %}
-
-    <h2>Médecins / Praticiens</h2>
-    <p><a href="{% url 'clinics:provider_add' %}">+ Ajouter un médecin</a></p>
-
-    {% if providers %}
-        <ul>
-        {% for provider in providers %}
-            <li>
-                <strong>{{ provider.full_name }}</strong> — {{ provider.specialty }}
-                <a href="{% url 'clinics:service_add' provider.id %}">+ Ajouter un service</a>
-                {% if provider.services.all %}
-                    <ul>
-                    {% for service in provider.services.all %}
-                        <li>{{ service.name }} ({{ service.average_duration }} min) — {{ service.price }} DZD</li>
-                    {% endfor %}
-                    </ul>
-                {% else %}
-                    <p>Aucun service pour l'instant.</p>
-                {% endif %}
-            </li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>Aucun médecin enregistré pour l'instant.</p>
-    {% endif %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-sm text-gray-500">Aucun médecin enregistré pour le moment.</p>
+        {% endif %}
+    </div>
 {% endblock %}

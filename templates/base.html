@@ -4,40 +4,72 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Rendia{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 300: '#5eead4',
+                            400: '#2dd4bf', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e',
+                            800: '#115e59', 900: '#134e4a',
+                        },
+                    },
+                },
+            },
+        }
+    </script>
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/main.css' %}">
 </head>
-<body>
-    <header>
-        <nav>
-            <a href="/">Rendia</a>
-            {% if user.is_authenticated %}
-                <a href="{% url 'clinics:dashboard' %}">Tableau de bord</a>
-                <form method="post" action="{% url 'logout' %}" style="display:inline;">
-                    {% csrf_token %}
-                    <button type="submit">Déconnexion</button>
-                </form>
-            {% else %}
-                <a href="{% url 'login' %}">Connexion</a>
-                <a href="{% url 'core:register' %}">Créer un compte</a>
-            {% endif %}
+<body class="min-h-screen bg-gray-50 text-gray-900 flex flex-col" hx-boost="true">
+    <header class="bg-white border-b border-gray-200">
+        <nav class="mx-auto max-w-5xl px-4 sm:px-6 py-3 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-2 text-brand-700 font-bold text-lg">
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white">R</span>
+                Rendia
+            </a>
+            <div class="flex items-center gap-4 text-sm">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'clinics:dashboard' %}" class="text-gray-600 hover:text-brand-700 font-medium">Tableau de bord</a>
+                    <form method="post" action="{% url 'logout' %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="text-gray-500 hover:text-red-600 font-medium">Déconnexion</button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'login' %}" class="text-gray-600 hover:text-brand-700 font-medium">Connexion</a>
+                    <a href="{% url 'core:register' %}" class="inline-flex items-center rounded-lg bg-brand-600 px-3 py-1.5 text-white font-medium hover:bg-brand-700 transition">
+                        Créer un compte
+                    </a>
+                {% endif %}
+            </div>
         </nav>
     </header>
 
-    <main>
+    <main class="flex-1 mx-auto w-full max-w-5xl px-4 sm:px-6 py-8">
         {% if messages %}
-            <ul class="messages">
+            <div class="mb-6 space-y-2">
                 {% for message in messages %}
-                    <li class="{{ message.tags }}">{{ message }}</li>
+                    <div class="rounded-lg px-4 py-3 text-sm font-medium border
+                        {% if message.tags == 'success' %} bg-green-50 text-green-800 border-green-200
+                        {% elif message.tags == 'error' %} bg-red-50 text-red-800 border-red-200
+                        {% elif message.tags == 'warning' %} bg-amber-50 text-amber-800 border-amber-200
+                        {% else %} bg-blue-50 text-blue-800 border-blue-200
+                        {% endif %}">
+                        {{ message }}
+                    </div>
                 {% endfor %}
-            </ul>
+            </div>
         {% endif %}
 
         {% block content %}{% endblock %}
     </main>
 
-    <footer>
-        <p>&copy; 2026 Rendia. Tous droits réservés.</p>
+    <footer class="border-t border-gray-200 bg-white">
+        <p class="mx-auto max-w-5xl px-4 sm:px-6 py-4 text-xs text-gray-400">&copy; 2026 Rendia. Tous droits réservés.</p>
     </footer>
 
     {% block extra_js %}{% endblock %}

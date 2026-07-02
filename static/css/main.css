@@ -1,1 +1,33 @@
-/* Rendia — Main CSS (placeholder for Phase 2 styling) */
+/* Rendia — small global fallback for form fields Tailwind classes can't reach
+   directly (e.g. Django's built-in login form uses AuthenticationForm, whose
+   widgets we don't control). Everything else is styled with Tailwind utility
+   classes in the templates themselves. */
+main input[type="text"],
+main input[type="email"],
+main input[type="password"],
+main input[type="tel"],
+main input[type="date"],
+main input[type="number"],
+main select,
+main textarea {
+    display: block;
+    width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid #d1d5db;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+main input[type="text"]:focus,
+main input[type="email"]:focus,
+main input[type="password"]:focus,
+main input[type="tel"]:focus,
+main input[type="date"]:focus,
+main input[type="number"]:focus,
+main select:focus,
+main textarea:focus {
+    outline: none;
+    border-color: #14b8a6;
+    box-shadow: 0 0 0 3px rgb(20 184 166 / 0.3);
+}

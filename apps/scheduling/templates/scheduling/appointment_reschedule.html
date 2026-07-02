@@ -1,33 +1,40 @@
 {% extends "base.html" %}
-{% block title %}Reprogrammer — Rendia{% endblock %}
+{% block title %}Reprogrammer{% endblock %}
 {% block content %}
-    <h1>Reprogrammer le rendez-vous</h1>
-    <p>{{ appointment.provider.full_name }} — {{ appointment.service.name }}</p>
+    <div class="mx-auto max-w-lg">
+        <h1 class="text-2xl font-bold text-gray-900 mb-1">Reprogrammer le rendez-vous</h1>
+        <p class="text-sm text-gray-500 mb-6">{{ appointment.provider.full_name }} - {{ appointment.service.name }}</p>
 
-    <form method="get">
-        <label>Date :
-            <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}">
-        </label>
-        <button type="submit">Voir les créneaux</button>
-    </form>
+        <form method="get" class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6 flex items-end gap-3">
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}"
+                       class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 focus:outline-none">
+            </div>
+            <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition">
+                Voir
+            </button>
+        </form>
 
-    <h2>Créneaux disponibles — {{ selected_date }}</h2>
-    {% if slots %}
-        <ul>
-        {% for slot in slots %}
-            <li>
-                <form method="post" style="display:inline;">
-                    {% csrf_token %}
-                    <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
-                    <input type="hidden" name="slot" value="{{ slot|date:'c' }}">
-                    <button type="submit">{{ slot|date:'H:i' }}</button>
-                </form>
-            </li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>Aucun créneau disponible ce jour-là.</p>
-    {% endif %}
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">Créneaux disponibles — {{ selected_date }}</h2>
+        {% if slots %}
+            <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-6">
+                {% for slot in slots %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+                        <input type="hidden" name="slot" value="{{ slot|date:'c' }}">
+                        <button type="submit"
+                                class="w-full text-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 hover:border-brand-300 transition">
+                            {{ slot|date:'H:i' }}
+                        </button>
+                    </form>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-sm text-gray-500 mb-6">Aucun créneau disponible ce jour-là.</p>
+        {% endif %}
 
-    <p><a href="{% url 'scheduling:appointment_manage' appointment.id %}">Retour</a></p>
+        <a href="{% url 'scheduling:appointment_manage' appointment.id %}" class="text-sm text-brand-700 hover:underline">Retour</a>
+    </div>
 {% endblock %}

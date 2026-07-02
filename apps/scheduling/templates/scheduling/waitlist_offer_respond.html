@@ -1,19 +1,31 @@
 {% extends "base.html" %}
 {% block title %}Créneau proposé — Rendia{% endblock %}
 {% block content %}
-    <h1>Un créneau s'est libéré</h1>
-    <p>
-        {{ entry.provider.full_name }}{% if entry.service %} — {{ entry.service.name }}{% endif %}<br>
-        {{ entry.offered_slot|date:'l d/m/Y à H:i' }}
-    </p>
-    <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="accept">
-        <button type="submit">Accepter ce créneau</button>
-    </form>
-    <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="decline">
-        <button type="submit">Refuser</button>
-    </form>
+    <div class="mx-auto max-w-lg">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">Un créneau s'est libéré</h1>
+
+        <div class="rounded-xl border border-brand-200 bg-brand-50 p-4 mb-6">
+            <p class="font-semibold text-brand-900">
+                {{ entry.provider.full_name }}{% if entry.service %} - {{ entry.service.name }}{% endif %}
+            </p>
+            <p class="text-sm text-brand-700">{{ entry.offered_slot|date:'l d/m/Y à H:i' }}</p>
+        </div>
+
+        <div class="flex gap-3">
+            <form method="post" class="flex-1">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="accept">
+                <button type="submit" class="w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition">
+                    Accepter ce créneau
+                </button>
+            </form>
+            <form method="post" class="flex-1">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="decline">
+                <button type="submit" class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
+                    Refuser
+                </button>
+            </form>
+        </div>
+    </div>
 {% endblock %}

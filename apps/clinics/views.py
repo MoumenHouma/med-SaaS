@@ -2,6 +2,7 @@ import uuid
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 from django.views.generic import CreateView, TemplateView
@@ -72,12 +73,19 @@ class DashboardView(ClinicStaffRequiredMixin, TemplateView):
         context["providers"] = self.clinic.providers.prefetch_related("services").order_by(
             "last_name", "first_name"
         )
-        context["today_appointments"] = (
+        today_appointments = (
             Appointment.objects.filter(
                 provider__clinic=self.clinic, scheduled_start__date=timezone.localdate()
             )
             .select_related("patient", "provider", "service")
             .order_by("scheduled_start")
+        )
+        context["today_appointments"] = today_appointments
+        context["at_risk_count"] = sum(
+            1 for appt in today_appointments if appt.no_show_probability and appt.no_show_probability >= 0.5
+        )
+        context["booking_url"] = self.request.build_absolute_uri(
+            reverse("scheduling:booking_search", kwargs={"clinic_slug": self.clinic.slug})
         )
         context["delay_breakdown"] = bottleneck_breakdown(self.clinic)
         context["utilization_pct"] = weekly_utilization(self.clinic)

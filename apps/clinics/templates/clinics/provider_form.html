@@ -1,11 +1,25 @@
 {% extends "base.html" %}
-{% block title %}Ajouter un médecin — Rendia{% endblock %}
+{% block title %}Ajouter un médecin{% endblock %}
 {% block content %}
-    <h1>Ajouter un médecin</h1>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Ajouter</button>
-    </form>
-    <p><a href="{% url 'clinics:dashboard' %}">Retour au tableau de bord</a></p>
+    <div class="mx-auto max-w-lg">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">Ajouter un médecin</h1>
+        <form method="post" class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
+            {% csrf_token %}
+            {% for field in form %}
+                <div>
+                    <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ field.errors|join:", " }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <button type="submit" class="w-full inline-flex justify-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition">
+                Ajouter
+            </button>
+        </form>
+        <p class="mt-4">
+            <a href="{% url 'clinics:dashboard' %}" class="text-sm text-brand-700 hover:underline">Retour au tableau de bord</a>
+        </p>
+    </div>
 {% endblock %}
