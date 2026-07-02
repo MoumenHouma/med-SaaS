@@ -86,6 +86,13 @@ class Appointment(BaseModel):
         CANCELLED = "cancelled", "Annulé"
         NO_SHOW = "no_show", "Absent"
 
+    class DelayReason(models.TextChoices):
+        LATE_ARRIVAL = "late_arrival", "Retard patient"
+        PROVIDER_OVERRUN = "provider_overrun", "Dépassement médecin"
+        ROOM_UNAVAILABLE = "room_unavailable", "Salle indisponible"
+        ADMIN_LAG = "admin_lag", "Retard administratif"
+        OTHER = "other", "Autre"
+
     patient = models.ForeignKey(
         Patient,
         on_delete=models.PROTECT,
@@ -146,6 +153,16 @@ class Appointment(BaseModel):
         default=False,
         verbose_name="Rappel confirmé",
         help_text="True si le patient a répondu '1' pour confirmer.",
+    )
+
+    # Bottleneck/Pareto classification, tagged on check-out (staff-confirmed,
+    # auto-suggested where actual_start/actual_end make it inferable). Blank
+    # until the visit is completed, or if no delay occurred.
+    delay_reason = models.CharField(
+        max_length=20,
+        choices=DelayReason.choices,
+        blank=True,
+        verbose_name="Cause du retard",
     )
 
     notes = models.TextField(blank=True, verbose_name="Notes internes")
@@ -264,6 +281,10 @@ class WaitlistEntry(BaseModel):
 
     # When the slot offer was made (for offer expiry tracking)
     offer_made_at = models.DateTimeField(null=True, blank=True, verbose_name="Offre faite le")
+
+    # The concrete slot offered -- set alongside status=OFFERED, so accepting
+    # doesn't need to re-derive a slot from preferred_slots.
+    offered_slot = models.DateTimeField(null=True, blank=True, verbose_name="Créneau proposé")
 
     class Meta:
         verbose_name = "Liste d'attente"

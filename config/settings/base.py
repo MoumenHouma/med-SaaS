@@ -131,3 +131,7 @@ SITE_URL = config("SITE_URL", default="http://127.0.0.1:8000")
 
 # Reminder emails go out to appointments starting within this many hours.
 REMINDER_LEAD_HOURS = config("REMINDER_LEAD_HOURS", default=24, cast=int)
+
+# A waitlist offer left unanswered for this many hours is expired, freeing
+# the slot to be re-offered on the next match_waitlist_offers run.
+WAITLIST_OFFER_EXPIRY_HOURS = config("WAITLIST_OFFER_EXPIRY_HOURS", default=24, cast=int)
